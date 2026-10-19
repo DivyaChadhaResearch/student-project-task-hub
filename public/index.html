@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Project Tracker & Chat Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Role Header Banner -->
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm">
+                    <i class="fa-solid fa-graduation-cap text-2xl text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Student Project & Task Hub</h1>
+                    <p class="text-xs text-indigo-200" id="headerSubtitle">Role: Teacher</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <div id="teacherActionButtons" class="flex items-center gap-2">
+                    <button onclick="openAddProjectModal()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-plus"></i> Add New Project
+                    </button>
+                    <button onclick="openTeacherSettingsModal()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3.5 py-2.5 rounded-xl border border-indigo-500/50 transition-all flex items-center gap-2 text-sm" title="Teacher Settings">
+                        <i class="fa-solid fa-gear"></i> Settings
+                    </button>
+                    <button onclick="openStudentProfilesModal()" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3.5 py-2.5 rounded-xl border border-indigo-500/50 transition-all flex items-center gap-2 text-sm" title="Student Profiles & Credentials">
+                        <i class="fa-solid fa-users-gear"></i> Student Profiles
+                    </button>
+                    <button onclick="exportExcelReport()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-file-excel"></i> Excel Report (.xls)
+                    </button>
+                    <button onclick="exportDataJSON()" class="bg-indigo-700 hover:bg-indigo-800 text-indigo-100 px-3.5 py-2.5 rounded-xl border border-indigo-500/50 transition-all flex items-center gap-2 text-sm" title="Backup Data">
+                        <i class="fa-solid fa-download"></i> JSON
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="activeRoleBadge" class="px-3 py-1.5 bg-white/20 text-white rounded-xl text-xs font-semibold backdrop-blur-sm">Teacher Workspace</span>
+                    <button onclick="logoutToRoleModal()" class="bg-white/10 hover:bg-white/20 text-white px-3.5 py-2 rounded-xl text-xs font-semibold backdrop-blur-sm transition-all flex items-center gap-1.5 border border-white/20">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+        
+        <!-- Search and Filter Bar -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="relative w-full md:w-96">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="searchInput" oninput="filterProjects()" placeholder="Search by student name or project..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Status:</span>
+                <select id="statusFilter" onchange="filterProjects()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">All Projects</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Connection / Status Notice -->
+        <div id="statusBanner" class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between hidden">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+                <span id="statusMessage">Connecting to secure cloud database...</span>
+            </div>
+            <button onclick="dismissBanner()" class="text-amber-600 hover:text-amber-800 text-xs font-semibold">Dismiss</button>
+        </div>
+
+        <!-- Projects Grid Container -->
+        <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Dynamically populated project cards -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-16 px-4 bg-white rounded-3xl border border-slate-200 text-center shadow-sm">
+            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-2xl mb-4">
+                <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-1">No Projects Found</h3>
+            <p id="emptyStateText" class="text-slate-500 text-sm max-w-sm mb-6">Get started by adding your first student project and defining its custom task checklist.</p>
+            <button id="emptyStateAddBtn" onclick="openAddProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm">
+                <i class="fa-solid fa-plus mr-1.5"></i> Add Project Now
+            </button>
+        </div>
+    </main>
+
+    <!-- Secure Role Selection & Login / Register Modal -->
+    <div id="roleModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 shadow-sm">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900">Portal Login</h3>
+                <p class="text-xs text-slate-500 mt-1">Select your portal type below to sign in.</p>
+            </div>
+            
+            <!-- Tabs Header -->
+            <div class="flex rounded-2xl bg-slate-100 p-1 mb-6 border border-slate-200/60">
+                <button type="button" id="tabTeacherBtn" onclick="switchLoginTab('teacher')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user"></i> Teacher Portal
+                </button>
+                <button type="button" id="tabStudentBtn" onclick="switchLoginTab('student')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-user-graduate"></i> Student Portal
+                </button>
+            </div>
+
+            <!-- Teacher Login / Register Forms Container -->
+            <div id="teacherPortalContainer">
+                <div class="flex rounded-xl bg-slate-100 p-1 mb-4 text-xs font-semibold">
+                    <button type="button" id="teacherTabLogin" onclick="switchTeacherSubTab('login')" class="flex-1 py-1.5 rounded-lg bg-white text-indigo-600 shadow-sm">Login</button>
+                    <button type="button" id="teacherTabRegister" onclick="switchTeacherSubTab('register')" class="flex-1 py-1.5 rounded-lg text-slate-500">Register Teacher</button>
+                </div>
+
+                <!-- Teacher Login Form -->
+                <form id="teacherLoginForm" onsubmit="handleTeacherLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Teacher Username</label>
+                        <input type="text" id="teacherUserInput" required placeholder="Enter teacher username" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Password</label>
+                        <input type="password" id="teacherPassInput" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-2 mt-2">
+                        <i class="fa-solid fa-right-to-bracket"></i> Login as Teacher
+                    </button>
+                </form>
+
+                <!-- Teacher Register Form -->
+                <form id="teacherRegisterForm" onsubmit="handleTeacherRegister(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Choose Username</label>
+                        <input type="text" id="teacherRegUserInput" required placeholder="Choose a unique username" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Choose Password</label>
+                        <input type="password" id="teacherRegPassInput" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-2 mt-2">
+                        <i class="fa-solid fa-user-plus"></i> Register Teacher Account
+                    </button>
+                </form>
+            </div>
+
+            <!-- Student Login Form -->
+            <form id="studentLoginForm" onsubmit="handleStudentLogin(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Student Username / Name</label>
+                    <input type="text" id="studentNameLoginInput" required placeholder="Enter your student name" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Student Password</label>
+                    <input type="password" id="studentPassLoginInput" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-2 mt-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login to Student Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Teacher Settings & Password Change Modal -->
+    <div id="teacherSettingsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 border border-slate-100">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-indigo-600"></i> Teacher Account Settings
+                </h3>
+                <button onclick="closeTeacherSettingsModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="handleChangeTeacherPassword(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Current Teacher Password</label>
+                    <input type="password" id="currentTeacherPass" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">New Teacher Password</label>
+                    <input type="password" id="newTeacherPass" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div class="pt-3 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeTeacherSettingsModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Profiles & Credentials Management Modal (Teacher Only) -->
+    <div id="studentProfilesModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col border border-slate-100 overflow-hidden">
+            <div class="p-6 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-users-gear"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Student Profiles & Passwords</h3>
+                        <p class="text-xs text-slate-500">View student account details, passwords, and update credentials.</p>
+                    </div>
+                </div>
+                <button onclick="closeStudentProfilesModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl bg-white border border-slate-200 shadow-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow space-y-4" id="studentProfilesListContainer">
+                <!-- Dynamically populated student profile list -->
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeStudentProfilesModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-medium">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Student Profile Modal -->
+    <div id="editStudentModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 border border-slate-100">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-pen text-indigo-600"></i> Edit Student Profile & Password
+                </h3>
+                <button onclick="closeEditStudentModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="handleSaveStudentProfile(event)" class="space-y-4">
+                <input type="hidden" id="editProjectId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Student Name</label>
+                    <input type="text" id="editStudentName" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Student Password</label>
+                    <div class="relative">
+                        <input type="text" id="editStudentPass" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                </div>
+                <div class="pt-3 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeEditStudentModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Project Modal (Teacher Only) -->
+    <div id="addProjectModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 border border-slate-100">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-file-circle-plus text-indigo-600"></i> Create Student Project & Account
+                </h3>
+                <button onclick="closeAddProjectModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="addProjectForm" onsubmit="handleCreateProject(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Student Name (Account Name)</label>
+                    <input type="text" id="studentNameInput" required placeholder="e.g., Alex Johnson" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Student Account Password</label>
+                    <input type="password" id="studentPassInput" required placeholder="Set password for student" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Project Title</label>
+                    <input type="text" id="projectTitleInput" required placeholder="e.g., AI Campus Assistant App" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Description / Notes</label>
+                    <textarea id="projectDescInput" rows="2" placeholder="Brief summary of project goals..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+                </div>
+                <div class="pt-3 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeAddProjectModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm shadow-sm">Save Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Manager & Group Chat Modal -->
+    <div id="projectDetailsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-slate-100 overflow-hidden">
+            <div class="p-6 bg-slate-50 border-b border-slate-200 flex justify-between items-start">
+                <div>
+                    <span id="modalProjectCategory" class="inline-block px-2.5 py-1 bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-full mb-1.5">Project Details & Discussion</span>
+                    <h2 id="modalProjectTitle" class="text-xl font-bold text-slate-900">Project Name</h2>
+                    <p id="modalStudentName" class="text-sm font-medium text-slate-600 mt-0.5"><i class="fa-solid fa-user-graduate mr-1.5 text-indigo-500"></i>Student Name</p>
+                </div>
+                <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-xl bg-white border border-slate-200 shadow-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Left Column: Tasks & Description -->
+                <div class="space-y-6">
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Project Description</h4>
+                        <p id="modalProjectDesc" class="text-sm text-slate-700">No description provided.</p>
+                    </div>
+
+                    <!-- Progress Bar Section -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Completion Status</h4>
+                            <span id="modalProgressText" class="text-xs font-bold text-indigo-600">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                            <div id="modalProgressBar" class="bg-indigo-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Task Checklist Heading & Adder -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-indigo-600"></i> Deliverables & Task Checklist
+                            </h4>
+                            <span id="taskCounterBadge" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold">0 completed</span>
+                        </div>
+
+                        <!-- Add task form inline -->
+                        <form id="addTaskFormContainer" onsubmit="handleAddTask(event)" class="flex gap-2">
+                            <input type="text" id="newTaskInput" required placeholder="Add new task or milestone..." class="flex-grow px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm flex items-center gap-1">
+                                <i class="fa-solid fa-plus"></i> Add
+                            </button>
+                        </form>
+
+                        <!-- Task List Items -->
+                        <div id="modalTaskList" class="space-y-2 mt-3 max-h-48 overflow-y-auto">
+                            <!-- Tasks rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Project Group Chat -->
+                <div class="flex flex-col bg-slate-50 border border-slate-200 rounded-2xl p-4 h-[420px]">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+                        <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-indigo-600"></i> Project Group Chat
+                        </h4>
+                        <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">Student & Teacher Chat</span>
+                    </div>
+
+                    <!-- Chat Messages List -->
+                    <div id="chatMessagesList" class="flex-grow overflow-y-auto space-y-3 pr-2 mb-3">
+                        <!-- Messages dynamically populated -->
+                    </div>
+
+                    <!-- Chat Input Form -->
+                    <form onsubmit="handleSendChatMessage(event)" class="flex gap-2 pt-2 border-t border-slate-200">
+                        <input type="text" id="chatMessageInput" required placeholder="Type a message to your group..." class="flex-grow px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all flex items-center justify-center">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                <button id="deleteProjectBtn" onclick="deleteCurrentProject()" class="text-rose-600 hover:text-rose-700 text-sm font-semibold flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-rose-50 transition-all">
+                    <i class="fa-solid fa-trash"></i> Delete Project
+                </button>
+                <button onclick="closeDetailsModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-medium">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50 text-sm">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage">Action completed successfully.</span>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global app state
+        window.projectsData = [];
+        window.teachersData = { "teacher": "admin123" };
+        window.currentActiveProjectId = null;
+        window.currentUserRole = null; // 'teacher' or student name string
+        window.db = null;
+        window.auth = null;
+        window.userId = null;
+
+        // Firebase config is public client configuration. Set it in firebase-config.js before deployment.
+        import { firebaseConfig, appId } from "./firebase-config.js";
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    window.db = getFirestore(app);
+                    window.auth = getAuth(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(window.auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(window.auth);
+                    }
+
+                    window.userId = window.auth.currentUser?.uid || crypto.randomUUID();
+                    showBanner("Connected to secure cloud database.", "success");
+                    setupRealtimeListener();
+                } catch (err) {
+                    console.error("Firebase init failed:", err);
+                    showBanner("Running in offline mode.", "warning");
+                    loadLocalFallback();
+                }
+            } else {
+                showBanner("Running in local storage mode.", "warning");
+                loadLocalFallback();
+            }
+        });
+
+        function setupRealtimeListener() {
+            if (!window.db || !window.userId) return;
+            
+            // Listen to projects
+            const colRef = collection(window.db, 'artifacts', appId, 'public', 'data', 'projects');
+            onSnapshot(colRef, (snapshot) => {
+                window.projectsData = [];
+                snapshot.forEach((docSnap) => {
+                    window.projectsData.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderProjects();
+                if (window.currentActiveProjectId) {
+                    renderModalTaskList();
+                    renderChatMessages();
+                }
+            }, (error) => {
+                console.error("Firestore sync error:", error);
+                loadLocalFallback();
+            });
+
+            // Listen to registered teachers
+            const teacherDocRef = doc(window.db, 'artifacts', appId, 'public', 'data', 'teachers_registry', 'accounts');
+            onSnapshot(teacherDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    window.teachersData = docSnap.data().credentials || { "teacher": "admin123" };
+                }
+            }, (err) => {
+                console.log("Teacher registry sync fallback");
+            });
+        }
+
+        async function persistTeachersToCloud() {
+            if (window.db && window.userId) {
+                try {
+                    const teacherDocRef = doc(window.db, 'artifacts', appId, 'public', 'data', 'teachers_registry', 'accounts');
+                    await setDoc(teacherDocRef, { credentials: window.teachersData });
+                } catch (err) {
+                    console.error("Error saving teachers:", err);
+                }
+            }
+        }
+
+        function loadLocalFallback() {
+            const savedProj = localStorage.getItem('student_tracker_projects_v7');
+            const savedTeachers = localStorage.getItem('student_tracker_teachers_v7');
+
+            if (savedTeachers) {
+                try { window.teachersData = JSON.parse(savedTeachers); } catch(e){}
+            }
+
+            if (savedProj) {
+                try {
+                    window.projectsData = JSON.parse(savedProj);
+                } catch(e) {
+                    window.projectsData = [];
+                }
+            } else {
+                window.projectsData = [
+                    {
+                        id: 'sample-1',
+                        studentName: 'Alex Turner',
+                        studentPassword: 'password123',
+                        title: 'Smart IoT Plant Watering System',
+                        description: 'Arduino-based automatic soil moisture detection and automated water pump trigger.',
+                        tasks: [
+                            { id: 't1', text: 'Hardware circuit assembly', completed: true },
+                            { id: 't2', text: 'ESP8266 Wi-Fi connectivity script', completed: false }
+                        ],
+                        messages: [
+                            { id: 'm1', sender: 'Alex Turner', text: 'Hello teacher, I started working on the circuit.', timestamp: Date.now() - 3600000 }
+                        ],
+                        createdAt: Date.now()
+                    }
+                ];
+                saveLocalFallback();
+            }
+            renderProjects();
+        }
+
+        function saveLocalFallback() {
+            localStorage.setItem('student_tracker_projects_v7', JSON.stringify(window.projectsData));
+            localStorage.setItem('student_tracker_teachers_v7', JSON.stringify(window.teachersData));
+        }
+
+        async function persistProjectChange(project) {
+            if (window.db && window.userId) {
+                try {
+                    const docRef = doc(window.db, 'artifacts', appId, 'public', 'data', 'projects', project.id);
+                    await setDoc(docRef, project);
+                } catch (err) {
+                    console.error("Error saving to cloud:", err);
+                    saveLocalFallback();
+                }
+            } else {
+                saveLocalFallback();
+            }
+        }
+
+        async function deleteProjectFromDb(projectId) {
+            if (window.db && window.userId) {
+                try {
+                    const docRef = doc(window.db, 'artifacts', appId, 'public', 'data', 'projects', projectId);
+                    await deleteDoc(docRef);
+                } catch (err) {
+                    console.error("Error deleting from cloud:", err);
+                }
+            }
+            window.projectsData = window.projectsData.filter(p => p.id !== projectId);
+            saveLocalFallback();
+            renderProjects();
+        }
+
+        // Login Tabs & Auth Control
+        window.switchLoginTab = function(type) {
+            const tabTeacherBtn = document.getElementById('tabTeacherBtn');
+            const tabStudentBtn = document.getElementById('tabStudentBtn');
+            const teacherContainer = document.getElementById('teacherPortalContainer');
+            const studentForm = document.getElementById('studentLoginForm');
+
+            if (type === 'teacher') {
+                tabTeacherBtn.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-2";
+                tabStudentBtn.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
+                teacherContainer.classList.remove('hidden');
+                studentForm.classList.add('hidden');
+            } else {
+                tabStudentBtn.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-2";
+                tabTeacherBtn.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2";
+                studentForm.classList.remove('hidden');
+                teacherContainer.classList.add('hidden');
+            }
+        };
+
+        window.switchTeacherSubTab = function(subType) {
+            const loginBtn = document.getElementById('teacherTabLogin');
+            const regBtn = document.getElementById('teacherTabRegister');
+            const loginForm = document.getElementById('teacherLoginForm');
+            const regForm = document.getElementById('teacherRegisterForm');
+
+            if (subType === 'login') {
+                loginBtn.className = "flex-1 py-1.5 rounded-lg bg-white text-indigo-600 shadow-sm";
+                regBtn.className = "flex-1 py-1.5 rounded-lg text-slate-500";
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+            } else {
+                regBtn.className = "flex-1 py-1.5 rounded-lg bg-white text-indigo-600 shadow-sm";
+                loginBtn.className = "flex-1 py-1.5 rounded-lg text-slate-500";
+                regForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        };
+
+        window.handleTeacherLogin = function(e) {
+            e.preventDefault();
+            const user = document.getElementById('teacherUserInput').value.trim();
+            const pass = document.getElementById('teacherPassInput').value.trim();
+
+            if (window.teachersData[user] && window.teachersData[user] === pass) {
+                window.currentUserRole = 'teacher';
+                document.getElementById('roleModal').classList.add('hidden');
+                updateUIRoleState();
+                renderProjects();
+                showToast(`Logged in as Teacher (${user}).`, "success");
+            } else {
+                showToast("Invalid teacher credentials.", "info");
+            }
+        };
+
+        window.handleTeacherRegister = async function(e) {
+            e.preventDefault();
+            const user = document.getElementById('teacherRegUserInput').value.trim();
+            const pass = document.getElementById('teacherRegPassInput').value.trim();
+
+            if (window.teachersData[user]) {
+                showToast("Teacher username already exists. Please choose another.", "info");
+                return;
+            }
+
+            window.teachersData[user] = pass;
+            await persistTeachersToCloud();
+            saveLocalFallback();
+
+            window.currentUserRole = 'teacher';
+            document.getElementById('roleModal').classList.add('hidden');
+            updateUIRoleState();
+            renderProjects();
+            showToast(`Teacher registered & logged in as ${user}!`, "success");
+        };
+
+        window.handleStudentLogin = function(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('studentNameLoginInput').value.trim().toLowerCase();
+            const passInput = document.getElementById('studentPassLoginInput').value.trim();
+
+            const matchedProject = window.projectsData.find(p => p.studentName.toLowerCase() === usernameInput);
+
+            if (!matchedProject) {
+                showToast("Student account not found. Please ask your teacher.", "info");
+                return;
+            }
+
+            const storedPass = matchedProject.studentPassword || 'password123';
+            if (passInput !== storedPass) {
+                showToast("Incorrect password.", "info");
+                return;
+            }
+
+            window.currentUserRole = matchedProject.studentName;
+            document.getElementById('roleModal').classList.add('hidden');
+            updateUIRoleState();
+            renderProjects();
+            showToast(`Logged in as ${matchedProject.studentName}`, "success");
+        };
+
+        window.logoutToRoleModal = function() {
+            window.currentUserRole = null;
+            document.getElementById('roleModal').classList.remove('hidden');
+            showToast("Logged out successfully.", "info");
+        };
+
+        function updateUIRoleState() {
+            const subtitle = document.getElementById('headerSubtitle');
+            const teacherBtns = document.getElementById('teacherActionButtons');
+            const roleBadge = document.getElementById('activeRoleBadge');
+
+            if (window.currentUserRole === 'teacher') {
+                subtitle.innerText = "Role: Teacher Workspace";
+                teacherBtns.classList.remove('hidden');
+                roleBadge.innerText = "Teacher Workspace";
+            } else {
+                subtitle.innerText = `Role: Student Account (${window.currentUserRole})`;
+                teacherBtns.classList.add('hidden');
+                roleBadge.innerText = `Student: ${window.currentUserRole}`;
+            }
+        }
+
+        // Teacher Settings & Password Change
+        window.openTeacherSettingsModal = function() {
+            if (window.currentUserRole !== 'teacher') return;
+            document.getElementById('teacherSettingsModal').classList.remove('hidden');
+        };
+
+        window.closeTeacherSettingsModal = function() {
+            document.getElementById('teacherSettingsModal').classList.add('hidden');
+        };
+
+        window.handleChangeTeacherPassword = async function(e) {
+            e.preventDefault();
+            const currentPass = document.getElementById('currentTeacherPass').value.trim();
+            const newPass = document.getElementById('newTeacherPass').value.trim();
+
+            // Verify with default or any registered teacher account
+            let verified = false;
+            for (let user in window.teachersData) {
+                if (window.teachersData[user] === currentPass) {
+                    window.teachersData[user] = newPass;
+                    verified = true;
+                    break;
+                }
+            }
+
+            if (!verified) {
+                showToast("Current teacher password incorrect.", "info");
+                return;
+            }
+
+            await persistTeachersToCloud();
+            saveLocalFallback();
+            closeTeacherSettingsModal();
+            showToast("Teacher password updated successfully!", "success");
+        };
+
+        // Student Profiles & Password Management
+        window.openStudentProfilesModal = function() {
+            if (window.currentUserRole !== 'teacher') return;
+            renderStudentProfilesList();
+            document.getElementById('studentProfilesModal').classList.remove('hidden');
+        };
+
+        window.closeStudentProfilesModal = function() {
+            document.getElementById('studentProfilesModal').classList.add('hidden');
+        };
+
+        window.renderStudentProfilesList = function() {
+            const container = document.getElementById('studentProfilesListContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (window.projectsData.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No student profiles created yet.</p>`;
+                return;
+            }
+
+            window.projectsData.forEach(p => {
+                const total = p.tasks.length;
+                const completed = p.tasks.filter(t => t.completed).length;
+                const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+                const item = document.createElement('div');
+                item.className = "bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4";
+                item.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <h4 class="text-sm font-bold text-slate-900">${escapeHTML(p.studentName)}</h4>
+                            <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-semibold rounded-full">${pct}% Complete</span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">Project: <span class="text-slate-700">${escapeHTML(p.title)}</span></p>
+                        <div class="flex items-center gap-2 pt-1 text-xs text-slate-600">
+                            <span class="font-semibold text-slate-400">Password:</span>
+                            <code class="px-2 py-0.5 bg-white border border-slate-200 rounded-md font-mono text-indigo-600">${escapeHTML(p.studentPassword || 'password123')}</code>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-end sm:self-center">
+                        <button onclick="openEditStudentModal('${p.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-key"></i> Edit Profile & Password
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        };
+
+        window.openEditStudentModal = function(projectId) {
+            const project = window.projectsData.find(p => p.id === projectId);
+            if (!project) return;
+
+            document.getElementById('editProjectId').value = project.id;
+            document.getElementById('editStudentName').value = project.studentName;
+            document.getElementById('editStudentPass').value = project.studentPassword || 'password123';
+            document.getElementById('editStudentModal').classList.remove('hidden');
+        };
+
+        window.closeEditStudentModal = function() {
+            document.getElementById('editStudentModal').classList.add('hidden');
+        };
+
+        window.handleSaveStudentProfile = async function(e) {
+            e.preventDefault();
+            const projectId = document.getElementById('editProjectId').value;
+            const newName = document.getElementById('editStudentName').value.trim();
+            const newPass = document.getElementById('editStudentPass').value.trim();
+
+            const project = window.projectsData.find(p => p.id === projectId);
+            if (!project) return;
+
+            project.studentName = newName;
+            project.studentPassword = newPass;
+
+            await persistProjectChange(project);
+            closeEditStudentModal();
+            renderStudentProfilesList();
+            renderProjects();
+            showToast("Student profile and password updated!", "success");
+        };
+
+        // Render Projects Grid
+        window.renderProjects = function() {
+            const grid = document.getElementById('projectsGrid');
+            const emptyState = document.getElementById('emptyState');
+            const searchInputEl = document.getElementById('searchInput');
+            const statusFilterEl = document.getElementById('statusFilter');
+            const searchVal = searchInputEl ? searchInputEl.value.toLowerCase() : '';
+            const statusFilter = statusFilterEl ? statusFilterEl.value : 'all';
+
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const filtered = window.projectsData.filter(p => {
+                // Strict security check: Students can only view their own assigned project
+                if (window.currentUserRole !== 'teacher' && p.studentName.toLowerCase() !== window.currentUserRole.toLowerCase()) {
+                    return false;
+                }
+
+                const matchesSearch = p.studentName.toLowerCase().includes(searchVal) || p.title.toLowerCase().includes(searchVal);
+                const totalTasks = p.tasks.length;
+                const completedTasks = p.tasks.filter(t => t.completed).length;
+                const isComplete = totalTasks > 0 && completedTasks === totalTasks;
+
+                if (statusFilter === 'completed') return matchesSearch && isComplete;
+                if (statusFilter === 'in-progress') return matchesSearch && !isComplete;
+                return matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                grid.classList.add('hidden');
+                if (window.currentUserRole !== 'teacher') {
+                    document.getElementById('emptyStateText').innerText = `No project assigned to ${window.currentUserRole} yet.`;
+                    document.getElementById('emptyStateAddBtn').classList.add('hidden');
+                } else {
+                    document.getElementById('emptyStateText').innerText = `Get started by adding your first student project and defining its task checklist.`;
+                    document.getElementById('emptyStateAddBtn').classList.remove('hidden');
+                }
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.classList.remove('hidden');
+
+            filtered.forEach(project => {
+                const totalTasks = project.tasks.length;
+                const completedTasks = project.tasks.filter(t => t.completed).length;
+                const percentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+                const isDone = totalTasks > 0 && completedTasks === totalTasks;
+                const msgCount = (project.messages || []).length;
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-graduate text-indigo-500"></i> ${escapeHTML(project.studentName)}
+                            </span>
+                            <span class="px-2.5 py-1 text-xs font-bold rounded-full ${isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                                ${isDone ? 'Completed' : `${percentage}% Done`}
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">${escapeHTML(project.title)}</h3>
+                        <p class="text-xs text-slate-500 line-clamp-2 mb-4">${escapeHTML(project.description || 'No description added.')}</p>
+                        
+                        <div class="w-full bg-slate-100 rounded-full h-2 mb-4">
+                            <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: ${percentage}%"></div>
+                        </div>
+
+                        <div class="space-y-1 mb-4 text-xs text-slate-600">
+                            <div class="flex justify-between font-semibold text-slate-400 mb-1">
+                                <span>Task Checklists</span>
+                                <span>${completedTasks}/${totalTasks}</span>
+                            </div>
+                            ${project.tasks.slice(0, 3).map(t => `
+                                <div class="flex items-center gap-2 truncate">
+                                    <i class="fa-solid ${t.completed ? 'fa-square-check text-indigo-600' : 'fa-square text-slate-300'}"></i>
+                                    <span class="${t.completed ? 'line-through text-slate-400' : ''}">${escapeHTML(t.text)}</span>
+                                </div>
+                            `).join('')}
+                            ${project.tasks.length > 3 ? `<p class="text-xs text-indigo-600 font-medium pt-1">+${project.tasks.length - 3} more tasks...</p>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+                            <span><i class="fa-solid fa-comments text-indigo-500 mr-1"></i> ${msgCount} chat messages</span>
+                        </div>
+                        <button onclick="openDetailsModal('${project.id}')" class="w-full bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 font-semibold py-2.5 px-4 rounded-xl text-sm transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-list-check"></i> Open Tasks & Chat
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        window.filterProjects = function() {
+            renderProjects();
+        };
+
+        window.openAddProjectModal = function() {
+            if (window.currentUserRole !== 'teacher') {
+                showToast("Only teachers can add new projects.", "info");
+                return;
+            }
+            document.getElementById('addProjectModal').classList.remove('hidden');
+        };
+
+        window.closeAddProjectModal = function() {
+            document.getElementById('addProjectModal').classList.add('hidden');
+            document.getElementById('addProjectForm').reset();
+        };
+
+        window.handleCreateProject = async function(e) {
+            e.preventDefault();
+            const studentName = document.getElementById('studentNameInput').value.trim();
+            const studentPassword = document.getElementById('studentPassInput').value.trim();
+            const title = document.getElementById('projectTitleInput').value.trim();
+            const description = document.getElementById('projectDescInput').value.trim();
+
+            const newProj = {
+                id: 'proj-' + Date.now(),
+                studentName,
+                studentPassword,
+                title,
+                description,
+                tasks: [
+                    { id: 't-' + Date.now() + '-1', text: 'Project Proposal & Research', completed: false },
+                    { id: 't-' + Date.now() + '-2', text: 'Implementation & Development', completed: false },
+                    { id: 't-' + Date.now() + '-3', text: 'Testing & Final Review', completed: false }
+                ],
+                messages: [
+                    { id: 'm-' + Date.now(), sender: 'Teacher', text: `Project created for student account: ${studentName}. Welcome!`, timestamp: Date.now() }
+                ],
+                createdAt: Date.now()
+            };
+
+            window.projectsData.unshift(newProj);
+            await persistProjectChange(newProj);
+            closeAddProjectModal();
+            renderProjects();
+            showToast("Project & student credentials created!", "success");
+        };
+
+        window.openDetailsModal = function(id) {
+            const project = window.projectsData.find(p => p.id === id);
+            if (!project) return;
+
+            // Strict authorization security check
+            if (window.currentUserRole !== 'teacher' && project.studentName.toLowerCase() !== window.currentUserRole.toLowerCase()) {
+                showToast("Access denied.", "info");
+                return;
+            }
+
+            window.currentActiveProjectId = id;
+
+            document.getElementById('modalProjectTitle').innerText = project.title;
+            document.getElementById('modalStudentName').innerHTML = `<i class="fa-solid fa-user-graduate mr-1.5 text-indigo-500"></i>${escapeHTML(project.studentName)}`;
+            document.getElementById('modalProjectDesc').innerText = project.description || 'No description provided.';
+            
+            const deleteBtn = document.getElementById('deleteProjectBtn');
+            if (window.currentUserRole !== 'teacher') {
+                deleteBtn.style.display = 'none';
+            } else {
+                deleteBtn.style.display = 'flex';
+            }
+
+            renderModalTaskList();
+            renderChatMessages();
+            document.getElementById('projectDetailsModal').classList.remove('hidden');
+        };
+
+        window.closeDetailsModal = function() {
+            document.getElementById('projectDetailsModal').classList.add('hidden');
+            window.currentActiveProjectId = null;
+            renderProjects();
+        };
+
+        window.renderModalTaskList = function() {
+            const project = window.projectsData.find(p => p.id === window.currentActiveProjectId);
+            if (!project) return;
+
+            const listContainer = document.getElementById('modalTaskList');
+            listContainer.innerHTML = '';
+
+            const total = project.tasks.length;
+            const completed = project.tasks.filter(t => t.completed).length;
+            const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+            document.getElementById('modalProgressText').innerText = percent + '%';
+            document.getElementById('modalProgressBar').style.width = percent + '%';
+            document.getElementById('taskCounterBadge').innerText = `${completed} of ${total} completed`;
+
+            if (project.tasks.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No tasks added yet.</p>`;
+                return;
+            }
+
+            project.tasks.forEach(task => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl hover:bg-slate-100/80 transition-all";
+                
+                item.innerHTML = `
+                    <label class="flex items-center gap-3 cursor-pointer flex-grow select-none">
+                        <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}')" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                        <span class="text-sm ${task.completed ? 'line-through text-slate-400 font-normal' : 'text-slate-700 font-medium'}">${escapeHTML(task.text)}</span>
+                    </label>
+                    ${window.currentUserRole === 'teacher' ? `<button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+                `;
+                listContainer.appendChild(item);
+            });
+        };
+
+        window.handleAddTask = async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('newTaskInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const project = window.projectsData.find(p => p.id === window.currentActiveProjectId);
+            if (!project) return;
+
+            project.tasks.push({
+                id: 't-' + Date.now(),
+                text,
+                completed: false
+            });
+
+            input.value = '';
+            renderModalTaskList();
+            await persistProjectChange(project);
+            showToast("Task added successfully!", "success");
+        };
+
+        window.toggleTaskCompletion = async function(taskId) {
+            const project = window.projectsData.find(p => p.id === window.currentActiveProjectId);
+            if (!project) return;
+
+            const task = project.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                renderModalTaskList();
+                await persistProjectChange(project);
+            }
+        };
+
+        window.deleteTask = async function(taskId) {
+            if (window.currentUserRole !== 'teacher') return;
+            const project = window.projectsData.find(p => p.id === window.currentActiveProjectId);
+            if (!project) return;
+
+            project.tasks = project.tasks.filter(t => t.id !== taskId);
+            renderModalTaskList();
+            await persistProjectChange(project);
+            showToast("Task removed.", "info");
+        };
+
+        // Chat Room Logic
+        window.renderChatMessages = function() {
+            const project = window.projectsData.find(p => p.id === window.currentActiveProjectId);
+            if (!project) return;
+
+            const chatList = document.getElementById('chatMessagesList');
+            chatList.innerHTML = '';
+
+            const messages = project.messages || [];
+            if (messages.length === 0) {
+                chatList.innerHTML = `<div class="text-center text-xs text-slate-400 py-8">No messages yet. Start the conversation!</div>`;
+                return;
+            }
+
+            messages.forEach(msg => {
+                const isMe = msg.sender === window.currentUserRole || (window.currentUserRole === 'teacher' && msg.sender === 'Teacher');
+                const bubble = document.createElement('div');
+                bubble.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2`;
+                
+                const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                bubble.innerHTML = `
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-[10px] font-bold text-slate-500">${escapeHTML(msg.sender)}</span>
+                        <span class="text-[9px] text-slate-400">${timeStr}</span>
+                    </div>
+                    <div class="max-w-[85%] px-3.5 py-2 rounded-2xl text-xs ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-sm'}">
+                        ${escapeHTML(msg.text)}
+                    </div>
+                `;
+                chatList.appendChild(bubble);
+            });
+            chatList.scrollTop = chatList.scrollHeight;
+        };
+
+        window.handleSendChatMessage = async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatMessageInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const project = window.projectsData.find(p => p.id === window.currentActiveProjectId);
+            if (!project) return;
+
+            if (!project.messages) project.messages = [];
+
+            const senderName = window.currentUserRole === 'teacher' ? 'Teacher' : window.currentUserRole;
+
+            project.messages.push({
+                id: 'msg-' + Date.now(),
+                sender: senderName,
+                text,
+                timestamp: Date.now()
+            });
+
+            input.value = '';
+            renderChatMessages();
+            await persistProjectChange(project);
+        };
+
+        window.deleteCurrentProject = async function() {
+            if (window.currentUserRole !== 'teacher') return;
+            if (!confirm("Are you sure you want to delete this project?")) return;
+            const id = window.currentActiveProjectId;
+            closeDetailsModal();
+            await deleteProjectFromDb(id);
+            showToast("Project deleted.", "info");
+        };
+
+        // Excel Report Generation (.xls format in a clean single worksheet table)
+        window.exportExcelReport = function() {
+            if (window.currentUserRole !== 'teacher') {
+                showToast("Only teachers can export reports.", "info");
+                return;
+            }
+
+            if (window.projectsData.length === 0) {
+                showToast("No projects available to export.", "info");
+                return;
+            }
+
+            let htmlTable = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head><meta charset="utf-8"><title>Student Projects Report</title></head>
+                <body>
+                <h2>Student Project & Task Completion Report</h2>
+                <table border="1">
+                    <thead>
+                        <tr style="background-color: #4f46e5; color: #ffffff;">
+                            <th>Project ID</th>
+                            <th>Student Name</th>
+                            <th>Project Title</th>
+                            <th>Description</th>
+                            <th>Total Tasks</th>
+                            <th>Completed Tasks</th>
+                            <th>Completion %</th>
+                            <th>Status</th>
+                            <th>Task Checklist Summary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            window.projectsData.forEach(p => {
+                const total = p.tasks.length;
+                const completed = p.tasks.filter(t => t.completed).length;
+                const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+                const status = (total > 0 && completed === total) ? 'Completed' : 'In Progress';
+                const taskSummary = p.tasks.map(t => `[${t.completed ? 'X' : ' '}] ${t.text}`).join('; ');
+
+                htmlTable += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${escapeHTML(p.studentName)}</td>
+                        <td>${escapeHTML(p.title)}</td>
+                        <td>${escapeHTML(p.description || '')}</td>
+                        <td>${total}</td>
+                        <td>${completed}</td>
+                        <td>${pct}%</td>
+                        <td>${status}</td>
+                        <td>${escapeHTML(taskSummary)}</td>
+                    </tr>
+                `;
+            });
+
+            htmlTable += `
+                    </tbody>
+                </table>
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([htmlTable], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Student_Projects_Report.xls';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Excel report generated successfully!", "success");
+        };
+
+        window.exportDataJSON = function() {
+            if (window.currentUserRole !== 'teacher') return;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.projectsData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "student_projects_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("JSON backup exported successfully!", "success");
+        };
+
+        function showBanner(msg, type) {
+            const banner = document.getElementById('statusBanner');
+            const message = document.getElementById('statusMessage');
+            message.innerText = msg;
+            banner.classList.remove('hidden');
+            if (type === 'success') {
+                banner.className = "bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between";
+            } else {
+                banner.className = "bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between";
+            }
+        }
+
+        window.dismissBanner = function() {
+            document.getElementById('statusBanner').classList.add('hidden');
+        };
+
+        window.showToast = function(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMessage.innerText = msg;
+            if (type === 'success') {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        };
+
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>

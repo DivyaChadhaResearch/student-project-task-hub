@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // DEMO ONLY: this matches the prototype's anonymous sign-in and shared project data.
+    // Any visitor can register anonymously and access shared project/teacher records.
+    // Do NOT use these rules with real student data or public production deployments.
+    match /artifacts/student-project-tracker-prod/public/data/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

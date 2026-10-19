@@ -1,0 +1,9 @@
+{
+  "name": "student-project-task-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Student project tracker prototype for GitHub and Vercel hosting",
+  "scripts": {
+    "start": "python -m http.server 8000 -d public"
+  }
+}
